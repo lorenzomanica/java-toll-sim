@@ -1,6 +1,8 @@
 import com.google.gson.Gson;
 import com.ning.http.client.*;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -26,34 +28,11 @@ public class TollMonitor implements Runnable {
 
                     TollLane.LaneInfo info = t.getLaneInfo();
 
-                    httpClient.preparePut(TollSim.baseUrl + "/toll/lane/info/"+info.getLaneId())
+                    httpClient.preparePut(TollSim.baseUrl + "/toll/status/"+info.getLaneId())
+                            .setHeader("Content-Type", "application/json")
+                            .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("elastic:changeme").getBytes(StandardCharsets.UTF_8)))
                             .setBody(new Gson().toJson(info))
-                            .execute(new AsyncHandler<Void>() {
-                                @Override
-                                public void onThrowable(Throwable throwable) {
-
-                                }
-
-                                @Override
-                                public STATE onBodyPartReceived(HttpResponseBodyPart httpResponseBodyPart) throws Exception {
-                                    return null;
-                                }
-
-                                @Override
-                                public STATE onStatusReceived(HttpResponseStatus httpResponseStatus) throws Exception {
-                                    return null;
-                                }
-
-                                @Override
-                                public STATE onHeadersReceived(HttpResponseHeaders httpResponseHeaders) throws Exception {
-                                    return null;
-                                }
-
-                                @Override
-                                public Void onCompleted() throws Exception {
-                                    return null;
-                                }
-                            });
+                            .execute();
 
                     StringBuilder sb = new StringBuilder();
                     sb.append(System.currentTimeMillis() + " ")

@@ -16,7 +16,7 @@ public class VehicleGenerator {
         for (int i = 0; i < 3; i++)
             plate += (char) (65 + Math.abs(rand.nextInt() % 26));
         plate += (char) 0x2d;
-        plate += String.format("%4d", rand.nextInt(10000));
+        plate += String.format("%04d", rand.nextInt(10000));
         return plate;
     }
 

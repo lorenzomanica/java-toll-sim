@@ -1,7 +1,9 @@
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.ning.http.client.*;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Date;
 import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -33,7 +35,7 @@ public class TollLane implements Runnable {
     }
 
     public LaneInfo getLaneInfo() {
-        return new LaneInfo(System.currentTimeMillis(), laneId, queue.size(), total, cars);
+        return new LaneInfo(new Date(System.currentTimeMillis()).toInstant().toString(), laneId, queue.size(), total, cars);
     }
 
     @Override
@@ -76,36 +78,13 @@ public class TollLane implements Runnable {
     private void sendLaneStatus(AsyncHttpClient client) {
         System.out.println("Toll info: Lane" + laneId + "open");
 
-        LaneStatus status = new LaneStatus(System.currentTimeMillis(), laneId, "open");
-
-        client.preparePut(TollSim.baseUrl + "/lane/status/"+laneId)
-                .setBody(new Gson().toJson(status))
-                .execute(new AsyncHandler<Void>() {
-                    @Override
-                    public void onThrowable(Throwable throwable) {
-
-                    }
-
-                    @Override
-                    public STATE onBodyPartReceived(HttpResponseBodyPart httpResponseBodyPart) throws Exception {
-                        return null;
-                    }
-
-                    @Override
-                    public STATE onStatusReceived(HttpResponseStatus httpResponseStatus) throws Exception {
-                        return null;
-                    }
-
-                    @Override
-                    public STATE onHeadersReceived(HttpResponseHeaders httpResponseHeaders) throws Exception {
-                        return null;
-                    }
-
-                    @Override
-                    public Void onCompleted() throws Exception {
-                        return null;
-                    }
-                });
+//        LaneStatus status = new LaneStatus(new Date(System.currentTimeMillis()).toInstant().toString(), laneId, "open");
+//
+//        client.preparePut(TollSim.baseUrl + "/status/"+laneId)
+//                .setHeader("Content-Type", "application/json")
+//                .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("elastic:changeme").getBytes(StandardCharsets.UTF_8)))
+//                .setBody(new Gson().toJson(status))
+//                .execute();
     }
 
     private void sendTicketProcessStatus(AsyncHttpClient client, Vehicle v, float val) {
@@ -119,91 +98,46 @@ public class TollLane implements Runnable {
         System.out.println(sb.toString());
 
         TicketProcessStatus ticket = new TicketProcessStatus(
-                System.currentTimeMillis(), laneId, (laneId * 10000 + cars), val, v
+                new Date(System.currentTimeMillis()).toInstant().toString(), laneId, (laneId * 10000 + cars), val, v
         );
 
-        client.preparePut(TollSim.baseUrl + "/toll/lane/"+laneId+"/ticket/"+ticket.getTicketNumber())
+        client.preparePut(TollSim.baseUrl + "/toll/ticket/" + ticket.getTicketNumber())
+                .setHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("elastic:changeme").getBytes(StandardCharsets.UTF_8)))
                 .setBody(new Gson().toJson(ticket))
-                .execute(new AsyncHandler<Void>() {
-                    @Override
-                    public void onThrowable(Throwable throwable) {
+                .execute();
 
-                    }
 
-                    @Override
-                    public STATE onBodyPartReceived(HttpResponseBodyPart httpResponseBodyPart) throws Exception {
-                        return null;
-                    }
-
-                    @Override
-                    public STATE onStatusReceived(HttpResponseStatus httpResponseStatus) throws Exception {
-                        return null;
-                    }
-
-                    @Override
-                    public STATE onHeadersReceived(HttpResponseHeaders httpResponseHeaders) throws Exception {
-                        return null;
-                    }
-
-                    @Override
-                    public Void onCompleted() throws Exception {
-                        return null;
-                    }
-                });
-
-        client.preparePut(TollSim.baseUrl+"/toll/car/"+v.getPlate())
+        client.preparePut(TollSim.baseUrl + "/toll/car/" + v.getPlate())
+                .setHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("elastic:changeme").getBytes(StandardCharsets.UTF_8)))
                 .setBody(new Gson().toJson(v))
-                .execute(new AsyncHandler<Void>() {
-                    @Override
-                    public void onThrowable(Throwable throwable) {
-
-                    }
-
-                    @Override
-                    public STATE onBodyPartReceived(HttpResponseBodyPart httpResponseBodyPart) throws Exception {
-                        return null;
-                    }
-
-                    @Override
-                    public STATE onStatusReceived(HttpResponseStatus httpResponseStatus) throws Exception {
-                        return null;
-                    }
-
-                    @Override
-                    public STATE onHeadersReceived(HttpResponseHeaders httpResponseHeaders) throws Exception {
-                        return null;
-                    }
-
-                    @Override
-                    public Void onCompleted() throws Exception {
-                        return null;
-                    }
-                });
+                .execute();
 
     }
 
 
     class LaneStatus {
 
-        private long timestamp;
+        private String date;
         private int laneId;
         private String status;
 
         public LaneStatus() {
         }
 
-        public LaneStatus(long timestamp, int laneId, String status) {
-            this.timestamp = timestamp;
+        public LaneStatus(String date, int laneId, String status) {
+            this.date = date;
             this.laneId = laneId;
             this.status = status;
         }
 
-        public long getTimestamp() {
-            return timestamp;
+        public String getDate() {
+            return date;
         }
 
-        public void setTimestamp(long timestamp) {
-            this.timestamp = timestamp;
+        public void setDate(String date) {
+            this.date = date;
         }
 
         public int getLaneId() {
@@ -225,7 +159,7 @@ public class TollLane implements Runnable {
         @Override
         public String toString() {
             return "{" +
-                    "timestamp=" + timestamp + ", " +
+                    "date=" + date + ", " +
                     "laneId=" + laneId + ", " +
                     "status='" + status + '\'' +
                     '}';
@@ -234,7 +168,7 @@ public class TollLane implements Runnable {
 
     class TicketProcessStatus {
 
-        private long timestamp;
+        private String date;
         private int laneId;
         private int ticketNumber;
         private float price;
@@ -243,20 +177,20 @@ public class TollLane implements Runnable {
         public TicketProcessStatus() {
         }
 
-        public TicketProcessStatus(long timestamp, int laneId, int ticketNumber, float price, Vehicle vehicle) {
-            this.timestamp = timestamp;
+        public TicketProcessStatus(String date, int laneId, int ticketNumber, float price, Vehicle vehicle) {
+            this.date = date;
             this.laneId = laneId;
             this.ticketNumber = ticketNumber;
             this.price = price;
             this.vehicle = vehicle;
         }
 
-        public long getTimestamp() {
-            return timestamp;
+        public String getDate() {
+            return date;
         }
 
-        public void setTimestamp(long timestamp) {
-            this.timestamp = timestamp;
+        public void setDate(String date) {
+            this.date = date;
         }
 
         public int getLaneId() {
@@ -294,7 +228,7 @@ public class TollLane implements Runnable {
         @Override
         public String toString() {
             return "TicketProcessStatus{" +
-                    "timestamp=" + timestamp +
+                    "date=" + date +
                     ", laneId=" + laneId +
                     ", ticketNumber=" + ticketNumber +
                     ", price=" + price +
@@ -305,7 +239,7 @@ public class TollLane implements Runnable {
 
     class LaneInfo {
 
-        private long timestamp;
+        private String date;
         private int laneId;
         private int queue;
         private float profit;
@@ -313,20 +247,20 @@ public class TollLane implements Runnable {
 
         public LaneInfo() {}
 
-        public LaneInfo(long timestamp, int laneId, int queue, float profit, int tickets) {
-            this.timestamp = timestamp;
+        public LaneInfo(String date, int laneId, int queue, float profit, int tickets) {
+            this.date = date;
             this.laneId = laneId;
             this.queue = queue;
             this.profit = profit;
             this.tickets = tickets;
         }
 
-        public long getTimestamp() {
-            return timestamp;
+        public String getDate() {
+            return date;
         }
 
-        public void setTimestamp(long timestamp) {
-            this.timestamp = timestamp;
+        public void setDate(String date) {
+            this.date = date;
         }
 
         public int getLaneId() {
@@ -364,7 +298,7 @@ public class TollLane implements Runnable {
         @Override
         public String toString() {
             return "LaneInfo{" +
-                    "timestamp=" + timestamp +
+                    "date=" + date +
                     ", laneId=" + laneId +
                     ", queue=" + queue +
                     ", profit=" + profit +
